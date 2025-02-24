@@ -17,7 +17,7 @@ auth = VerifyToken()
 post = Neo4jInitComopnents()
 
 # 📌 Endpoint para registrar cashback ganado
-@query.get("/gain_cashback", tags=['Cashback'], summary="Registrar cashback ganado")
+@query.get("/variables", tags=['init_component'], summary="Registrar cashback ganado")
 def gain_cashback(user_id:str):
     """
     Este endpoint permite registrar cashback ganado por un cliente.

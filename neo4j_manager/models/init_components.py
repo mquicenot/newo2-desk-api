@@ -1,10 +1,10 @@
 INIT_COMPONENTS = """
-    UNWIND $data AS record
-    MATCH (user:jhi_user {user_id:record.auth_id})--(miembro:Miembros)--(admin:AdministradorEmpresa)--(empresa:Empresa)
-    RETURN
-        CASE WHEN user IS NULL THEN false ELSE true END AS usuario,
-        CASE WHEN miembro IS NULL THEN false ELSE true END AS miembro,
-        CASE WHEN empresa IS NULL THEN false ELSE true END AS empresa
+UNWIND $data AS record
+MATCH (user:jhi_user {user_id:record.auth_id})--(miembro:Miembros)--(admin:AdministradorEmpresa)--(empresa:Empresa)
+RETURN
+    CASE WHEN user IS NULL THEN false ELSE true END AS usuario,
+    CASE WHEN miembro IS NULL THEN false ELSE true END AS miembro,
+    CASE WHEN empresa IS NULL THEN false ELSE true END AS empresa
 """
 
 def init_components(data, tx):
