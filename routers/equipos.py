@@ -42,7 +42,10 @@ class CrearEquipo(BaseModel):
 
 
 @query.get("/obtener_equipos", tags=['Equipos'], summary="Obtener equipo en la base de datos")
-def obtener_equipo(user_id: str = Query(..., title="Identificador del usuario"), empresa_id: str = Query(..., title="Identificador de la empresa")):  # user_id: str = Query(..., title="Identificador del usuario"), empresa_id: str = Query(..., title="Identificador de la empresa"
+def obtener_equipo(user_id: str = Query(..., title="Identificador del usuario"), 
+                empresa_id: str = Query(..., title="Identificador de la empresa"),
+                tamanio_pagina: Optional[int] = Query(100, title="Identificador de la empresa"), 
+                pagina: Optional[int] = Query(0, title="Identificador de la empresa")):  # user_id: str = Query(..., title="Identificador del usuario"), empresa_id: str = Query(..., title="Identificador de la empresa"
     """
     Este endpoint permite modificar un equipo en la base de datos.
 
@@ -58,7 +61,9 @@ def obtener_equipo(user_id: str = Query(..., title="Identificador del usuario"),
         # Convertir los parámetros en un diccionario
         records = [{
             'user_id': user_id,
-            'empresa_id': empresa_id
+            'empresa_id': empresa_id,
+            'tamanio_pagina': tamanio_pagina,
+            'pagina': pagina
         }]
 
         print("Datos recibidos:", records)  # Debugging

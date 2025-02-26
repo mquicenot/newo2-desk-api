@@ -1,9 +1,12 @@
 OBTENER_EQUIPOS = """
 UNWIND $data AS record
-MATCH (user:jhi_user {user_id:record.user_id})--(miembro:Miembros)--(admin:AdministradorEmpresa)--(empresa:Empresa {id:record.empresa_id})--(equipo:EquipoEmpresa)--(privilegio:PrivilegiosEmpresarial)
+MATCH (user:jhi_user {user_id:record.user_id})--(miembro:Miembros)
+      --(admin:AdministradorEmpresa)--(empresa:Empresa {id:record.empresa_id})
+      --(equipo:EquipoEmpresa)--(privilegio:PrivilegiosEmpresarial)
 OPTIONAL MATCH (equipo)--(tarjeta:TarjetaAsociada)
 OPTIONAL MATCH (equipo)--(integrantes:Miembros)
-WITH equipo, privilegio, COLLECT(DISTINCT tarjeta) AS tarjetas, COLLECT(integrantes) AS integrantes
+WITH record.tamanio_pagina AS tamanio_pagina, record.pagina AS pagina, equipo, privilegio, COLLECT(DISTINCT tarjeta) AS tarjetas, COLLECT(integrantes) AS integrantes
+
 WITH {
     id: equipo.id,
     nombre: equipo.nombre,
@@ -13,7 +16,7 @@ WITH {
     privilegios: {
         oficina: privilegio.oficina,
         acceso_ilimitado: privilegio.acceso_ilimitado,
-        acceso_ilimitado_fecha_inicio: COALESCE(toString(privilegio.accesoi_fecha_inicio), "") ,
+        acceso_ilimitado_fecha_inicio: COALESCE(toString(privilegio.accesoi_fecha_inicio), ""),
         acceso_ilimitado_fecha_fin: COALESCE(toString(privilegio.accesoi_fecha_fin), ""),
         pago_reservas: privilegio.pago_reservas,
         pago_invitados: privilegio.pago_invitados,
@@ -21,14 +24,28 @@ WITH {
         tope_ingresos_invitados: privilegio.invitados,
         tope_ingresos_reservas: privilegio.eventos
     },
-    tarjetas: [  i IN tarjetas WHERE i.estado = 'AVAILABLE' |  {id:i.id, nombre:i.name, titular:i.titular , correo:i.correo_cliente, last_four: i.numero_tarjeta, franquicia:i.franquicia}],
+    tarjetas: [i IN tarjetas WHERE i.estado = 'AVAILABLE' | 
+        {id: i.id, nombre: i.name, titular: i.titular, correo: i.correo_cliente, last_four: i.numero_tarjeta, franquicia: i.franquicia}
+    ],
     integrantes: {
-        integrantes_activos: size([ i IN integrantes WHERE EXISTS {(i)--(:BloqueoEmpresarial {bloqueo: false})}]),
-        integrantes_bloqueados: size([ i IN integrantes WHERE EXISTS {(i)--(:BloqueoEmpresarial {bloqueo: true})}])
-  }
-    
-} AS equipo
-RETURN equipo
+        integrantes_activos: size([i IN integrantes WHERE EXISTS {(i)--(:BloqueoEmpresarial {bloqueo: false})}]),
+        integrantes_bloqueados: size([i IN integrantes WHERE EXISTS {(i)--(:BloqueoEmpresarial {bloqueo: true})}])
+    }
+} AS equipo, tamanio_pagina, pagina
+
+ORDER BY equipo.nombre
+// Aplicar filtro por equipo_id si se proporciona
+WITH COLLECT(equipo) AS equipos, tamanio_pagina, pagina
+
+// Generar metadata antes de aplicar la paginación
+WITH equipos, tamanio_pagina, pagina, 
+     { registros: SIZE(equipos), tamanio_pagina: tamanio_pagina, pagina: pagina } AS metadata
+
+// Aplicar paginación manual
+RETURN metadata, 
+       [i IN RANGE(pagina * tamanio_pagina, (pagina + 1) * tamanio_pagina - 1) 
+        WHERE i < SIZE(equipos) | equipos[i]] AS equipos
+
 """
 
 def obtener_equipos(data, tx):

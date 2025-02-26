@@ -5,11 +5,27 @@ MATCH (user:jhi_user {user_id: record.user_id})--(miembro:Miembros)--(admin:Admi
       (equipo)--(integrante:Miembros),
       (bloqueo:BloqueoEmpresarial)--(integrante)--(nivel:NivelEmpresarial),
       (integrante)--(compras:RegistroCompra)--(empresa)
-WHERE record.equipo_id IS NULL OR equipo.id = record.equipo_id
+WHERE (record.bloqueo IS NULL OR bloqueo.bloqueo = record.bloqueo)
+    AND
+    (record.equipo_id IS NULL OR equipo.id = record.equipo_id) 
+    AND (
+        record.integrantes IS NULL 
+        OR (
+            record.integrantes IS NOT NULL 
+            AND (
+                LOWER(integrante.login) CONTAINS LOWER(record.integrantes) 
+                OR LOWER(integrante.identificacion) CONTAINS LOWER(record.integrantes) 
+                OR LOWER(integrante.nombre) CONTAINS LOWER(record.integrantes)
+            )
+        )
+    )
+
+ORDER BY integrante.correo ASC
 WITH record.tamanio_pagina AS tamanio_pagina, record.pagina AS pagina, 
      integrante, COLLECT(compras) AS compras, bloqueo, nivel, equipo, privilegio, empresa
 WITH {
     id: integrante.id,
+    bloqueo: {bloqueo:bloqueo.bloqueo, bloqueo_fecha_inicio: bloqueo.bloqueo_fecha_inicio, bloqueo_fecha_fin: bloqueo.bloqueo_fecha_fin},
     nombre: integrante.nombre,
     documento: integrante.identificacion,
     tipo_documento: integrante.tipo_documento,
@@ -36,7 +52,8 @@ WITH {
         nombre: nivel.nombre
     }
 } AS integrante, pagina, tamanio_pagina
-WITH COLLECT(integrante) AS integrantes, tamanio_pagina, pagina
+
+    WITH COLLECT(integrante) AS integrantes, tamanio_pagina, pagina
 
 // Calcular metadata antes de la paginación
 WITH integrantes, tamanio_pagina, pagina, 
