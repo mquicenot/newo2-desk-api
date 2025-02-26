@@ -1,35 +1,7 @@
 # Consulta para obtener información de un usuario y su relación con la empresa
 ONTENER_EMPRESAS_ADMIN = """
     UNWIND $data AS record
-    MATCH (miembro_solo:Miembros {login:record.email})
-    OPTIONAL MATCH (usuario:jhi_user {user_id:record.auth_id})--(miembro:Miembros)--(admin:AdministradorEmpresa)--(empresa:Empresa)
-    WITH usuario, miembro, empresa, miembro_solo
-    RETURN
-    {
-        login:usuario.login,
-        auth_id:usuario.user_id
-    } AS usuario,
-    {
-        id:miembro.id,
-        nombre:miembro.nombre,
-        tipo_documento:miembro.tipo_documento,
-        documento:miembro.identificacion,
-        email:miembro.login,
-        activo:miembro.activo
-    } AS perfil,
-    {
-        id:miembro_solo.id,
-        nombre:miembro_solo.nombre,
-        tipo_documento:miembro_solo.tipo_documento,
-        documento:miembro_solo.identificacion,
-        email:miembro_solo.login,
-        activo:miembro_solo.activo
-    } AS perfil_solo,
-    {
-        id:empresa.id,
-        razon_social:empresa.razon_social,
-        documento:empresa.nit
-    } AS empresa
+    MATCH (miembro_solo:Miembros {user_id:record.user_id})
 """
 
 def init_components(data, tx):
