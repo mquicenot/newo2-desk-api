@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from routers import auth0, init_components, equipos
 
@@ -21,6 +22,11 @@ async def no_cache_middleware(request, call_next):
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     return response
+
+
+@app.get("/", include_in_schema=False)
+def docs():
+    return RedirectResponse(url='/docs')
 
 
 app.include_router(auth0.query, prefix='/auth')
