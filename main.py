@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import auth0, init_components, equipos
+from routers import auth0, init_components, equipos, integrantes
 
 app = FastAPI(title='newo2 b2b api')
 
@@ -26,5 +26,7 @@ async def no_cache_middleware(request, call_next):
 app.include_router(auth0.query, prefix='/auth')
 app.include_router(init_components.query, prefix='/init_components')
 app.include_router(equipos.query, prefix='/equipos')
+app.include_router(integrantes.query, prefix='/integrantes')
+
 
 
