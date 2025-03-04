@@ -7,11 +7,18 @@ OPTIONAL MATCH (empresa)--(eq:EquipoEmpresa)--(integrante:Miembros)--(n:NivelEmp
 OPTIONAL MATCH (integrante)--(b:BloqueoEmpresarial)
 WITH usuario, miembro, miembro_solo, empresa, 
      COLLECT({integrante: integrante, nivel_id: n.id, nivel_nombre: n.nombre, bloqueo: b.bloqueo}) AS integrantes,
-     COLLECT(DISTINCT n.id) AS niveles_empresariales
+     COLLECT(DISTINCT {
+  id:n.id, max_integrantes:n.max_rango_empresa,
+  min_integrante:n.min_rango_empresa,
+  nombre:n.nombre,
+  descuento_sedes:n.descuento_sede, 
+  descuento_invitados:n.descuento_invitado,
+  descuento_reservas:n.descuento_reserva}) AS niveles_empresariales
 WITH usuario, miembro, miembro_solo, 
      COLLECT({
          id: empresa.id,
          razon_social: empresa.razon_social,
+         pago_empresarial: empresa.pago_empresarial,
          documento: empresa.nit,
          integrantes_bloqueados: size([i IN integrantes WHERE i.bloqueo = true]),
          integrantes_activos: size([i IN integrantes WHERE i.bloqueo = false]),
@@ -50,7 +57,6 @@ def init_components(data, tx):
     :raises ValueError: Si ocurre un error al ejecutar la consulta.
     """
     try:
-        print("📥 Datos de entrada:", data)
         result = tx.run(INIT_COMPONENTS, {'data': data})
         result = result.data()
         print("✔ Usuarios obtenidos correctamente:", result)
@@ -85,7 +91,6 @@ def create_jhi_user_with_miembro(data, tx):
     :raises ValueError: Si ocurre un error al ejecutar la consulta.
     """
     try:
-        print("📥 Datos de entrada:", data)
         result = tx.run(CREATE_JHI_USER_WITH_MIEMBRO, {'data': data})
         result = result.data()
         print("✔ Usuario creado o actualizado correctamente:", result)

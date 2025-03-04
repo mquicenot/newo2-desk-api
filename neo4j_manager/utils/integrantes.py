@@ -1,4 +1,4 @@
-from neo4j_manager.models.integrantes import obtener_integrantes
+from neo4j_manager.models.integrantes import obtener_integrantes, editar_integrantes
 from neo4j_manager.driver import Neo4jDriver
 
 class Neo4jIntegrantes:
@@ -23,6 +23,27 @@ class Neo4jIntegrantes:
             with session.begin_transaction() as tx:
                 try:
                     result = obtener_integrantes(user_data, tx)
+                    tx.commit()
+                    print('✔ Usuario creado correctamente: ', result)
+                    return result
+                except Exception as e:
+                    print(f"❌ Error al ejecutar la mutación: {e}")
+                    tx.rollback()
+                finally:
+                    self.db.close()
+    
+    
+    def EditarIntegrantes(self, user_data):
+        """
+        Método para crear un nuevo usuario en la base de datos Neo4j.
+
+        :param user_data: Diccionario que contiene la información del usuario a crear.
+        """
+        driver = self.db.connect()
+        with driver.session() as session:
+            with session.begin_transaction() as tx:
+                try:
+                    result = editar_integrantes(user_data, tx)
                     tx.commit()
                     print('✔ Usuario creado correctamente: ', result)
                     return result

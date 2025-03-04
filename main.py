@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import auth0, init_components, equipos, integrantes
+from routers import auth0, init_components, equipos, integrantes, compras
+from fastapi.responses import RedirectResponse
 
 app = FastAPI(title='newo2 b2b api')
 
@@ -12,6 +13,7 @@ app.add_middleware(
     allow_methods=["*"],  # Permitir todos los métodos HTTP (GET, POST, PUT, DELETE, etc.)
     allow_headers=["*"],  # Permitir todos los headers
 )
+
 
 # Middleware para deshabilitar caché en las respuestas
 @app.middleware("http")
@@ -27,6 +29,11 @@ app.include_router(auth0.query, prefix='/auth')
 app.include_router(init_components.query, prefix='/init_components')
 app.include_router(equipos.query, prefix='/equipos')
 app.include_router(integrantes.query, prefix='/integrantes')
+app.include_router(compras.query, prefix='/compras')
 
+
+@app.get('/', include_in_schema=False)
+def go_to_docs():
+    return RedirectResponse('/docs')
 
 

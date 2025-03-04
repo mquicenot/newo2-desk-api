@@ -5,8 +5,8 @@ MATCH (user:jhi_user {user_id:record.user_id})--(miembro:Miembros)
       --(equipo:EquipoEmpresa)--(privilegio:PrivilegiosEmpresarial)
 OPTIONAL MATCH (equipo)--(tarjeta:TarjetaAsociada)
 OPTIONAL MATCH (equipo)--(integrantes:Miembros)
-WITH record.tamanio_pagina AS tamanio_pagina, record.pagina AS pagina, equipo, privilegio, COLLECT(DISTINCT tarjeta) AS tarjetas, COLLECT(integrantes) AS integrantes
-
+WITH record.tamanio_pagina AS tamanio_pagina, record.pagina AS pagina, equipo, privilegio, COLLECT(DISTINCT tarjeta) AS tarjetas, COLLECT( DISTINCT integrantes) AS integrantes
+WHERE equipo.visible = true
 WITH {
     id: equipo.id,
     nombre: equipo.nombre,
@@ -15,7 +15,10 @@ WITH {
     telefono: equipo.telefono,
     privilegios: {
         oficina: privilegio.oficina,
+        membresia: COALESCE(privilegio.membresia, false),
         acceso_ilimitado: privilegio.acceso_ilimitado,
+        acceso_ilimitado_cupo: COALESCE(privilegio.acceso_ilimitado_cupo, 0),
+        membresia_cupo: COALESCE(privilegio.membresia_cupo, 0),
         acceso_ilimitado_fecha_inicio: COALESCE(toString(privilegio.accesoi_fecha_inicio), ""),
         acceso_ilimitado_fecha_fin: COALESCE(toString(privilegio.accesoi_fecha_fin), ""),
         pago_reservas: privilegio.pago_reservas,
@@ -45,7 +48,6 @@ WITH equipos, tamanio_pagina, pagina,
 RETURN metadata, 
        [i IN RANGE(pagina * tamanio_pagina, (pagina + 1) * tamanio_pagina - 1) 
         WHERE i < SIZE(equipos) | equipos[i]] AS equipos
-
 """
 
 def obtener_equipos(data, tx):
@@ -62,7 +64,6 @@ def obtener_equipos(data, tx):
     :raises ValueError: Si ocurre un error al ejecutar la consulta.
     """
     try:
-        print(data)
         result = tx.run(OBTENER_EQUIPOS, {'data': data})
         result = result.data()
         print('✔ Los equipos se han importado correctamente. ', result)
@@ -74,7 +75,7 @@ def obtener_equipos(data, tx):
 MODIFICAR_EQUIPOS = """
 UNWIND $data AS record
 MATCH (user:jhi_user {user_id:record.user_id})--(miembro:Miembros)--(admin:AdministradorEmpresa)--(empresa:Empresa)--(equipo:EquipoEmpresa {id:record.equipo_id})--(privilegio:PrivilegiosEmpresarial)
-WITH record, equipo, privilegio,
+WITH DISTINCT record, equipo, privilegio,
     CASE 
         WHEN record.acceso_ilimitado IS NULL THEN privilegio.acceso_ilimitado
         WHEN record.acceso_ilimitado = privilegio.acceso_ilimitado THEN privilegio.acceso_ilimitado
@@ -108,7 +109,6 @@ def modificar_equipos(data, tx):
     :raises ValueError: Si ocurre un error al ejecutar la consulta.
     """
     try:
-        print(data)
         result = tx.run(MODIFICAR_EQUIPOS, {'data': data})
         result = result.data()
         print('✔ Los usuarios se han creado o actualizado correctamente. ', result)
@@ -122,7 +122,7 @@ CREAR_EQUIPO = """
 UNWIND $data AS record
 MATCH (jhi:jhi_user {user_id: record.user_id})--(miembro:Miembros)--(administrador:AdministradorEmpresa)--(empresa:Empresa {id: record.empresa_id})
 
-WITH empresa, record
+WITH DISTINCT empresa, record
 // Crear el nodo EquipoEmpresa solo si no existe
 CREATE (equipo:EquipoEmpresa {
     correo: record.correo,
@@ -198,7 +198,6 @@ def crear_equipo(data, tx):
     :raises ValueError: Si ocurre un error al ejecutar la consulta.
     """
     try:
-        print(data)
         result = tx.run(CREAR_EQUIPO, {'data': data})
         result = result.data()
         print('✔ Los usuarios se han creado o actualizado correctamente. ', result)

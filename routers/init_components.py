@@ -69,8 +69,6 @@ def gain_cashback(payload: createJhiUserWithMiembro):
         records = [{
             **payload.dict()
         }]
-
-        print(records)
         
         # Se ejecuta la operación en Neo4j
         response = post.createJhiUserWithMiembro(records)

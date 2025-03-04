@@ -65,9 +65,6 @@ def obtener_equipo(user_id: str = Query(..., title="Identificador del usuario"),
             'tamanio_pagina': tamanio_pagina,
             'pagina': pagina
         }]
-
-        print("Datos recibidos:", records)  # Debugging
-
         # Ejecutar la operación en Neo4j
         response = post.ObtenerEquipos(records)
 
@@ -97,9 +94,6 @@ def modificar_equipo(payload: ModificarEquipo):
     try:
         # Convertir el payload a diccionario
         records = [payload.dict()]
-
-        print("Datos recibidos:", records)  # Debugging
-
         # Ejecutar la operación en Neo4j
         response = post.ModificarEquipos(records)
 
@@ -128,9 +122,7 @@ def modificar_equipo(payload: CrearEquipo):
     try:
         # Convertir el payload a diccionario
         records = [payload.dict()]
-
-        print("Datos recibidos:", records)  # Debugging
-
+        
         # Ejecutar la operación en Neo4j
         response = post.CrearEquipo(records)
 

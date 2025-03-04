@@ -33,7 +33,7 @@ class Neo4jDriver:
             try:
                 self._driver = GraphDatabase.driver(self._uri, auth=(self._user, self._password))
             except Exception as e:
-                print(f"Failed to create the driver: {e}")
+                return;
         return self._driver  
 
     def close(self):

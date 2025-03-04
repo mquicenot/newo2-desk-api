@@ -63,12 +63,10 @@ class auth0Services:
         
         except HTTPException as e:
             # Si ocurre una excepción HTTP (por ejemplo, credenciales incorrectas), se captura y se retorna una excepción HTTP personalizada
-            print(f"HTTPException: {e}")
             return HTTPException(status_code=400, detail=e)
         
         except Exception as e:
             # Si ocurre cualquier otra excepción (por ejemplo, problemas de red), se captura y se lanza un error HTTP 500
-            print(f"Error: {str(e)}")  # Imprimir el error completo para depuración
             raise HTTPException(status_code=500, detail=str(e))
 
     def create_new_user(self, username: str, password: str):

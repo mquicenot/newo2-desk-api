@@ -27,7 +27,6 @@ class Neo4jEquipos:
                     print('✔ Usuario creado correctamente: ', result)
                     return result
                 except Exception as e:
-                    print(f"❌ Error al ejecutar la mutación: {e}")
                     tx.rollback()
                 finally:
                     self.db.close()
@@ -47,7 +46,6 @@ class Neo4jEquipos:
                     print('✔ Usuario creado correctamente: ', result)
                     return result
                 except Exception as e:
-                    print(f"❌ Error al ejecutar la mutación: {e}")
                     tx.rollback()
                 finally:
                     self.db.close()

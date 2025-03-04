@@ -14,7 +14,6 @@ def init_components(data, tx):
     :raises ValueError: Si ocurre un error al ejecutar la consulta.
     """
     try:
-        print("📥 Datos de entrada:", data)
         result = tx.run(INIT_COMPONENTS, {'data': data})
         result = result.data()
         print("✔ Usuarios obtenidos correctamente:", result)
