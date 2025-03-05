@@ -97,3 +97,52 @@ def create_jhi_user_with_miembro(data, tx):
         return result
     except Exception as e:
         raise ValueError(f'❌ Error al crear o actualizar usuario: {str(e)}')
+
+# Consulta para obtener información de un usuario y su relación con la empresa
+USUARIO_INFO = """
+UNWIND $data AS record
+MATCH (miembro_solo:Miembros {login:record.email_integrante})
+OPTIONAL MATCH (usuario:jhi_user {login:record.email_integrante})--(miembro:Miembros)--(equipo:EquipoEmpresa)
+OPTIONAL MATCH (integrante)--(b:BloqueoEmpresarial)
+WITH usuario, miembro, miembro_solo, equipo
+RETURN DISTINCT {
+    login: usuario.login,
+    auth_id: usuario.user_id
+} AS usuario,
+{
+    id: miembro.id,
+    nombre: miembro.nombre,
+    tipo_documento: miembro.tipo_documento,
+    documento: miembro.identificacion,
+    email: miembro.login,
+    activo: miembro.activo
+} AS perfil,
+{
+    id: miembro_solo.id,
+    nombre: miembro_solo.nombre,
+    tipo_documento: miembro_solo.tipo_documento,
+    documento: miembro_solo.identificacion,
+    email: miembro_solo.login,
+    activo: miembro_solo.activo
+} AS perfil_solo,{
+  id:equipo.id,
+  nombre: equipo.nombre
+} AS equipo
+"""
+
+def usuario_info(data, tx):
+    """
+    Obtiene la información de un usuario en la base de datos Neo4j, incluyendo sus relaciones con la empresa.
+    
+    :param data: Lista de diccionarios con la información del usuario (debe incluir 'email' y 'auth_id').
+    :param tx: Objeto de transacción de Neo4j para ejecutar la consulta Cypher.
+    :return: Lista de diccionarios con la información del usuario y su relación con la empresa.
+    :raises ValueError: Si ocurre un error al ejecutar la consulta.
+    """
+    try:
+        result = tx.run(USUARIO_INFO, {'data': data})
+        result = result.data()
+        print("✔ Usuarios obtenidos correctamente:", result)
+        return result
+    except Exception as e:
+        raise ValueError(f'❌ Error al obtener usuarios: {str(e)}')

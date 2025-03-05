@@ -51,7 +51,7 @@ CREATE (rc:RegistroCompra {
        fecha_pago: "",
        id: randomUUID(),
        pagado: false,
-       tipo: "acceso_ilimitado",
+       tipo: "acceso_ilimitado_equipo",
        tipo_pago: "saldo_pendiente",
        valor: valor
     })

@@ -1,8 +1,10 @@
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field
 from neo4j_manager.utils.integrantes import Neo4jIntegrantes  # Clase para interactuar con Neo4j
+import random
+import string
 
 # Se crea un router de FastAPI para definir los endpoints de esta sección
 query = APIRouter()
@@ -16,6 +18,16 @@ class EditarIntegrante(BaseModel):
     integrante_id: str = Field(..., description='ID del integrante del equipo')
     equipo_id: str = Field(..., description='ID del equipo al que voy a transferir')
     bloqueo: bool = Field (..., description='Estado del usuario dentro de la empresa')
+
+class InvitarIntegrante(BaseModel):
+    user_id: str = Field(..., description='ID del usuario en Auth0')
+    empresa_id: str = Field(..., description='ID de la empresa')
+    equipo_id: str = Field(..., description='ID del equipo al que voy a transferir')
+    email_integrante: str = Field(..., description='email de integrante a invitar')
+    identificacion_integrante: str = Field(..., description='identificacion de integrante a invitar')
+
+class InvitarIntegranteLista(BaseModel):
+    integrantes: List[InvitarIntegrante]
 
 @query.get("/obtener_integrantes", tags=['Integrantes'], summary="Obtener equipo en la base de datos")
 def obtener_integrantes(
@@ -78,6 +90,32 @@ def editar_integrantes(payload: EditarIntegrante):
         print(data)
         # Ejecutar la operación en Neo4j
         response = post.EditarIntegrantes(data)
+        return JSONResponse(status_code=200, content=response)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+@query.put("/invitar_integrantes", tags=['Integrantes'], summary="Editar un integrante")
+def invitar_integrantes(payload: InvitarIntegranteLista):
+    """
+    Este endpoint permite editar un integrante en la base de datos.
+
+    Parámetros:
+    - `user_id` (str): Identificador del usuario.
+    - `empresa_id` (str): Identificador de la empresa.
+    - `integrante_id` (str): Identificador del integrante a editar.
+    - `equipo_id` (str): Nuevo equipo del integrante.
+
+    Respuesta:
+    - `200`: Modificación exitosa.
+    - `400`: Error en la operación.
+    """
+    try:
+        # Convertir la carga útil en un diccionario
+        data = payload.model_dump()['integrantes']
+        
+        print(data)
+        # Ejecutar la operación en Neo4j
+        response = post.InvitarIntegrante(data)
         return JSONResponse(status_code=200, content=response)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

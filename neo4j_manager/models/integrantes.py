@@ -179,3 +179,175 @@ def editar_integrantes(data, tx):
         return result
     except Exception as e:
         raise ValueError(f'❌ Error al crear o actualizar usuarios: {str(e)}')
+
+
+INVITAR_INTEGRANTE_CREAR = """
+UNWIND $data AS record
+MATCH (user:jhi_user {user_id: record.user_id})
+      --(miembro:Miembros)--(admin:AdministradorEmpresa)
+      --(empresa:Empresa {id: record.empresa_id})
+      --(equipo:EquipoEmpresa {id: record.equipo_id})
+      --(privilegio:PrivilegiosEmpresarial)
+
+WITH equipo, empresa, record
+
+OPTIONAL MATCH (empresa)--(eq:EquipoEmpresa)--(integrantes:Miembros)--(n:NivelEmpresarial)
+
+WITH DISTINCT equipo, empresa, record, COLLECT(DISTINCT n) AS niveles
+
+MATCH (free:Nivel {id: "8bb8188d-b385-43e6-b603-4cb68417471f"})
+
+WITH DISTINCT equipo, niveles[0] AS nivel, record, free
+
+MERGE (integrante:Miembros {login: record.email_integrante})
+ON CREATE SET 
+    integrante.whatsapp = "", 
+    integrante.fecha_nacimiento = "", 
+    integrante.titulo = "", 
+    integrante.instagram = "", 
+    integrante.linkedin = "", 
+    integrante.fecha_creacion = toString(datetime({timezone: 'America/Bogota'})), 
+    integrante.nombre = "", 
+    integrante.nacionalidad = "Colombia", 
+    integrante.acceso_ilimitado = false, 
+    integrante.genero = "", 
+    integrante.id_google = "", 
+    integrante.host = false, 
+    integrante.celular = "", 
+    integrante.id = randomUUID(), 
+    integrante.activo_hasta = "", 
+    integrante.user_id_old = "", 
+    integrante.correo_facturacion = record.email_integrante, 
+    integrante.facebook = "", 
+    integrante.aliado = false, 
+    integrante.biografia = "", 
+    integrante.identificacion = record.identificacion_integrante, 
+    integrante.twiter = "", 
+    integrante.direccion_facturacion = "", 
+    integrante.tipo_documento = "Cédula de ciudadanía", 
+    integrante.fecha_registro = toString(datetime({timezone: 'America/Bogota'})), 
+    integrante.web_alterna = "", 
+    integrante.web_site = "", 
+    integrante.activo = true
+
+// Se requiere WITH antes de CALL
+WITH integrante, equipo, nivel, record
+
+WITH integrante
+CREATE (saldos:Saldos { 
+    fecha_saldo_actual: "2024-12-30T12:59:23.008Z", 
+    saldo_pendiente: 0.0, 
+    saldo_credito: 0.0, 
+    tipo: "Saldo", 
+    saldo_bono: 0.0, 
+    fecha_saldo_credito: toString(datetime({timezone: 'America/Bogota'})), 
+    fecha_saldo_recarga: toString(datetime({timezone: 'America/Bogota'})), 
+    fecha_saldo_bono: toString(datetime({timezone: 'America/Bogota'})), 
+    fecha_saldo_pendiente: toString(datetime({timezone: 'America/Bogota'})), 
+    fecha_registro: toString(datetime({timezone: 'America/Bogota'})), 
+    saldo_recarga: 0.0, 
+    name: "Saldo", 
+    id: randomUUID() 
+})
+
+CREATE (b:BloqueoEmpresarial {
+    bloqueo_fecha_fin: toString(datetime()),
+    bloqueo_fecha_inicio: toString(datetime()),
+    id: randomUUID(),
+    fecha_creacion: timestamp(),
+    bloqueo: false,
+    fecha_bloqueo: datetime(),
+    detalle: []
+})
+
+MERGE (integrante)<-[:MiembroToSaldo]-(saldos)
+MERGE (integrante)<-[:Bloqueo]-(b)
+MERGE (integrante)<-[:NivelToMiembro]-(free)
+MERGE (integrante)<-[:NivelToEmpresa]-(nivel)
+MERGE (integrante)<-[:EquipoToMiembro]-(equipo)
+
+RETURN *
+"""
+
+def invitar_integrante_crear(data, tx):
+    """
+    Función para crear un nuevo usuario en la base de datos Neo4j.
+    Ejecuta una consulta Cypher para insertar un usuario si no existe, o actualizarlo si ya está presente.
+
+    :param data: Una lista de diccionarios que contiene la información del usuario. Cada diccionario debe tener 
+                 las claves 'email', 'name'.
+    :param tx: El objeto de transacción de Neo4j que se utiliza para ejecutar la consulta Cypher.
+
+    :return: Una lista de resultados de la consulta, indicando los usuarios que se han insertado o actualizado.
+    
+    :raises ValueError: Si ocurre un error al ejecutar la consulta.
+    """
+    try:
+        result = tx.run(INVITAR_INTEGRANTE_CREAR, {'data': data})
+        result = result.data()
+        print('✔ Los integrantes se han importado correctamente. ', result)
+        return result
+    except Exception as e:
+        raise ValueError(f'❌ Error al crear o actualizar usuarios: {str(e)}')
+      
+
+INVITAR_INTEGRANTE_UNIR = """
+UNWIND $data AS record
+MATCH (user:jhi_user {user_id: record.user_id})
+      --(miembro:Miembros)--(admin:AdministradorEmpresa)
+      --(empresa:Empresa {id: record.empresa_id})
+      --(equipo:EquipoEmpresa {id: record.equipo_id})
+      --(privilegio:PrivilegiosEmpresarial)
+
+WITH equipo, empresa, record
+
+OPTIONAL MATCH (empresa)--(eq:EquipoEmpresa)--(integrantes:Miembros)--(n:NivelEmpresarial)
+
+WITH DISTINCT equipo, empresa, record, COLLECT(DISTINCT n) AS niveles
+
+WITH DISTINCT equipo, niveles[0] AS nivel, record
+
+MATCH (integrante:Miembros {login: record.email_integrante})
+
+// Se requiere WITH antes de CALL
+WITH integrante, equipo, nivel, record
+
+WITH integrante
+
+CREATE (b:BloqueoEmpresarial {
+    bloqueo_fecha_fin: toString(datetime()),
+    bloqueo_fecha_inicio: toString(datetime()),
+    id: randomUUID(),
+    fecha_creacion: timestamp(),
+    bloqueo: false,
+    fecha_bloqueo: datetime(),
+    detalle: []
+})
+
+MERGE (integrante)<-[:Bloqueo]-(b)
+MERGE (integrante)<-[:NivelToEmpresa]-(nivel)
+MERGE (integrante)<-[:EquipoToMiembro]-(equipo)
+
+RETURN *
+"""
+
+def invitar_integrante_unir(data, tx):
+    """
+    Función para crear un nuevo usuario en la base de datos Neo4j.
+    Ejecuta una consulta Cypher para insertar un usuario si no existe, o actualizarlo si ya está presente.
+
+    :param data: Una lista de diccionarios que contiene la información del usuario. Cada diccionario debe tener 
+                 las claves 'email', 'name'.
+    :param tx: El objeto de transacción de Neo4j que se utiliza para ejecutar la consulta Cypher.
+
+    :return: Una lista de resultados de la consulta, indicando los usuarios que se han insertado o actualizado.
+    
+    :raises ValueError: Si ocurre un error al ejecutar la consulta.
+    """
+    try:
+        result = tx.run(INVITAR_INTEGRANTE_UNIR, {'data': data})
+        result = result.data()
+        print('✔ Los integrantes se han importado correctamente. ', result)
+        return result
+    except Exception as e:
+        raise ValueError(f'❌ Error al crear o actualizar usuarios: {str(e)}')
