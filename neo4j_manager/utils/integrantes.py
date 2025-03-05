@@ -89,10 +89,10 @@ class Neo4jIntegrantes:
 
                         # Verificar si el usuario ya existe en Neo4j
                         perfil = usuario_info([{'email_integrante': email}], tx)
-
+                        print('📊 Información del perfil:', perfil or 'No hay datos'   )
                         if perfil:
-                            equipo = perfil[0].get('equipo', None)
-                            if equipo:
+                            equipo = perfil[0]['equipo']['id']
+                            if not (equipo == None):
                                 raise Exception(f"❌ El usuario {email} ya cuenta con equipo.")
                             else:
                                 print('🔗 Usuario sin equipo, lo voy a vincular.')
@@ -104,10 +104,13 @@ class Neo4jIntegrantes:
 
 
                         print('📊 Información del perfil:', perfil or 'No hay datos')
+                        tx.commit()
+                        return 'El ususario se ha vincula exitosamente'
 
                 except Exception as e:
                     print(f"❌ Error al ejecutar la mutación en Neo4j: {e}")
                     tx.rollback()
+                    return 'Ha ocurrido un error al vincular al integrante'
                 finally:
                     self.db.close()
 

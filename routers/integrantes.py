@@ -24,7 +24,6 @@ class InvitarIntegrante(BaseModel):
     empresa_id: str = Field(..., description='ID de la empresa')
     equipo_id: str = Field(..., description='ID del equipo al que voy a transferir')
     email_integrante: str = Field(..., description='email de integrante a invitar')
-    identificacion_integrante: str = Field(..., description='identificacion de integrante a invitar')
 
 class InvitarIntegranteLista(BaseModel):
     integrantes: List[InvitarIntegrante]

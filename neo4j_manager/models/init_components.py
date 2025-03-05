@@ -101,14 +101,11 @@ def create_jhi_user_with_miembro(data, tx):
 # Consulta para obtener información de un usuario y su relación con la empresa
 USUARIO_INFO = """
 UNWIND $data AS record
-MATCH (miembro_solo:Miembros {login:record.email_integrante})
-OPTIONAL MATCH (usuario:jhi_user {login:record.email_integrante})--(miembro:Miembros)--(equipo:EquipoEmpresa)
+MATCH (miembro:Miembros {login:record.email_integrante})
+OPTIONAL MATCH (miembro)--(equipo:EquipoEmpresa)
 OPTIONAL MATCH (integrante)--(b:BloqueoEmpresarial)
-WITH usuario, miembro, miembro_solo, equipo
-RETURN DISTINCT {
-    login: usuario.login,
-    auth_id: usuario.user_id
-} AS usuario,
+WITH miembro, equipo
+RETURN DISTINCT
 {
     id: miembro.id,
     nombre: miembro.nombre,
@@ -116,15 +113,7 @@ RETURN DISTINCT {
     documento: miembro.identificacion,
     email: miembro.login,
     activo: miembro.activo
-} AS perfil,
-{
-    id: miembro_solo.id,
-    nombre: miembro_solo.nombre,
-    tipo_documento: miembro_solo.tipo_documento,
-    documento: miembro_solo.identificacion,
-    email: miembro_solo.login,
-    activo: miembro_solo.activo
-} AS perfil_solo,{
+} AS perfil,{
   id:equipo.id,
   nombre: equipo.nombre
 } AS equipo

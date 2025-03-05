@@ -3,8 +3,9 @@ UNWIND $data AS record
 MATCH (user:jhi_user {user_id: record.user_id})--(miembro:Miembros)--(admin:AdministradorEmpresa)
       --(empresa:Empresa {id: record.empresa_id})--(equipo:EquipoEmpresa)--(privilegio:PrivilegiosEmpresarial),
       (equipo)--(integrante:Miembros),
-      (bloqueo:BloqueoEmpresarial)--(integrante)--(nivel:NivelEmpresarial),
-      (integrante)--(compras:RegistroCompra)--(empresa)
+      (bloqueo:BloqueoEmpresarial)--(integrante)--(nivel:NivelEmpresarial)
+OPTIONAL MATCH (integrante)--(compras:RegistroCompra)--(empresa)
+WITH user, miembro, admin, empresa, equipo, integrante, bloqueo, nivel, privilegio, record, compras
 WHERE (record.bloqueo IS NULL OR bloqueo.bloqueo = record.bloqueo)
     AND (record.equipo_id IS NULL OR equipo.id = record.equipo_id) 
     AND (
@@ -39,7 +40,9 @@ WITH {
                             THEN datetime(apoc.date.format(toInteger(bloqueo.bloqueo_fecha_fin), 'ms', "yyyy-MM-dd'T'HH:mm:ss")) 
                             WHEN bloqueo.bloqueo_fecha_fin =~ '\\d{10}' 
                             THEN datetime(apoc.date.format(toInteger(bloqueo.bloqueo_fecha_fin), 's', "yyyy-MM-dd'T'HH:mm:ss")) 
-                            ELSE datetime(replace(bloqueo.bloqueo_fecha_fin, ' ', 'T')) 
+                            WHEN bloqueo.bloqueo_fecha_fin IS NOT NULL AND TRIM(bloqueo.bloqueo_fecha_fin) <> "" 
+                            THEN datetime(replace(bloqueo.bloqueo_fecha_fin, ' ', 'T')) 
+                            ELSE NULL 
                         END, 
                         datetime()
                     )
@@ -81,7 +84,7 @@ WITH integrantes, tamanio_pagina, pagina,
      { registros: SIZE(integrantes), tamanio_pagina: tamanio_pagina, pagina: pagina } AS metadata
 
 //// Paginación manual sin usar `CALL {}`
-WITH metadata, integrantes, tamanio_pagina, pagina
+WITH DISTINCT metadata, integrantes, tamanio_pagina, pagina
 RETURN metadata, 
        [i IN RANGE(pagina * tamanio_pagina, (pagina + 1) * tamanio_pagina - 1) 
         WHERE i < SIZE(integrantes) | integrantes[i]] AS integrantes
@@ -130,23 +133,23 @@ WITH DISTINCT integrante, equipo, equipo_to, bloqueo, record, l1,
   END AS nuevo_bloqueo,
   CASE 
     WHEN bloqueo.bloqueo = false 
-      AND record.bloqueo = true 
-      THEN toString(datetime({timezone: 'America/Bogota'}) + duration({days:30}))
+      AND record.bloqueo = true
+      THEN toString(datetime.truncate('second', datetime({timezone:'America/Bogota'}) + duration({days:30})))
     WHEN bloqueo.bloqueo = true 
       AND record.bloqueo = false 
       AND datetime(bloqueo.bloqueo_fecha_fin) <= datetime({timezone:'America/Bogota'})
       THEN null
-    ELSE toString(bloqueo.bloqueo_fecha_fin)
+    ELSE toString(datetime.truncate('second', datetime({datetime:datetime(bloqueo.bloqueo_fecha_fin), timezone:'America/Bogota'})))
   END AS nuevo_bloqueo_fecha_fin,
   CASE 
     WHEN bloqueo.bloqueo = false 
       AND record.bloqueo = true 
-      THEN toString(datetime({timezone: 'America/Bogota'}))
+      THEN toString(datetime.truncate('second', datetime({timezone:'America/Bogota'})))
     WHEN bloqueo.bloqueo = true 
       AND record.bloqueo = false 
       AND datetime(bloqueo.bloqueo_fecha_fin) <= datetime({timezone:'America/Bogota'})
       THEN null
-    ELSE toString(bloqueo.bloqueo_fecha_inicio)
+      ELSE toString(datetime.truncate('second', datetime({datetime:datetime(bloqueo.bloqueo_fecha_inicio), timezone:'America/Bogota'})))
   END AS nuevo_bloqueo_fecha_inicio
 
 // Eliminar la relación si existe
@@ -206,7 +209,7 @@ ON CREATE SET
     integrante.titulo = "", 
     integrante.instagram = "", 
     integrante.linkedin = "", 
-    integrante.fecha_creacion = toString(datetime({timezone: 'America/Bogota'})), 
+    integrante.fecha_creacion = toString(datetime.truncate('second', datetime({timezone:'America/Bogota'}))), 
     integrante.nombre = "", 
     integrante.nacionalidad = "Colombia", 
     integrante.acceso_ilimitado = false, 
@@ -221,42 +224,39 @@ ON CREATE SET
     integrante.facebook = "", 
     integrante.aliado = false, 
     integrante.biografia = "", 
-    integrante.identificacion = record.identificacion_integrante, 
+    integrante.identificacion = "", 
     integrante.twiter = "", 
     integrante.direccion_facturacion = "", 
     integrante.tipo_documento = "Cédula de ciudadanía", 
-    integrante.fecha_registro = toString(datetime({timezone: 'America/Bogota'})), 
+    integrante.fecha_registro = toString(datetime.truncate('second', datetime({timezone:'America/Bogota'}))),
     integrante.web_alterna = "", 
     integrante.web_site = "", 
     integrante.activo = true
 
-// Se requiere WITH antes de CALL
-WITH integrante, equipo, nivel, record
-
-WITH integrante
+WITH integrante, equipo, nivel, record, free
 CREATE (saldos:Saldos { 
-    fecha_saldo_actual: "2024-12-30T12:59:23.008Z", 
+    fecha_saldo_actual: toString(datetime.truncate('second', datetime({timezone:'America/Bogota'}))),  
     saldo_pendiente: 0.0, 
     saldo_credito: 0.0, 
     tipo: "Saldo", 
     saldo_bono: 0.0, 
-    fecha_saldo_credito: toString(datetime({timezone: 'America/Bogota'})), 
-    fecha_saldo_recarga: toString(datetime({timezone: 'America/Bogota'})), 
-    fecha_saldo_bono: toString(datetime({timezone: 'America/Bogota'})), 
-    fecha_saldo_pendiente: toString(datetime({timezone: 'America/Bogota'})), 
-    fecha_registro: toString(datetime({timezone: 'America/Bogota'})), 
+    fecha_saldo_credito: toString(datetime.truncate('second', datetime({timezone:'America/Bogota'}))),  
+    fecha_saldo_recarga: toString(datetime.truncate('second', datetime({timezone:'America/Bogota'}))),  
+    fecha_saldo_bono: toString(datetime.truncate('second', datetime({timezone:'America/Bogota'}))),  
+    fecha_saldo_pendiente: toString(datetime.truncate('second', datetime({timezone:'America/Bogota'}))),  
+    fecha_registro: toString(datetime.truncate('second', datetime({timezone:'America/Bogota'}))),  
     saldo_recarga: 0.0, 
     name: "Saldo", 
     id: randomUUID() 
 })
 
 CREATE (b:BloqueoEmpresarial {
-    bloqueo_fecha_fin: toString(datetime()),
-    bloqueo_fecha_inicio: toString(datetime()),
+    bloqueo_fecha_fin: "",
+    bloqueo_fecha_inicio: "",
     id: randomUUID(),
-    fecha_creacion: timestamp(),
+    fecha_creacion: toString(datetime.truncate('second', datetime({timezone:'America/Bogota'}))),
     bloqueo: false,
-    fecha_bloqueo: datetime(),
+    fecha_bloqueo: toString(datetime.truncate('second', datetime({timezone:'America/Bogota'}))),
     detalle: []
 })
 
@@ -266,7 +266,7 @@ MERGE (integrante)<-[:NivelToMiembro]-(free)
 MERGE (integrante)<-[:NivelToEmpresa]-(nivel)
 MERGE (integrante)<-[:EquipoToMiembro]-(equipo)
 
-RETURN *
+RETURN integrante.id AS integrante_id
 """
 
 def invitar_integrante_crear(data, tx):
@@ -312,15 +312,13 @@ MATCH (integrante:Miembros {login: record.email_integrante})
 // Se requiere WITH antes de CALL
 WITH integrante, equipo, nivel, record
 
-WITH integrante
-
 CREATE (b:BloqueoEmpresarial {
-    bloqueo_fecha_fin: toString(datetime()),
-    bloqueo_fecha_inicio: toString(datetime()),
+    bloqueo_fecha_fin: "",
+    bloqueo_fecha_inicio: "",
     id: randomUUID(),
-    fecha_creacion: timestamp(),
+    fecha_creacion: toString(datetime.truncate('second', datetime({timezone:'America/Bogota'}))),
     bloqueo: false,
-    fecha_bloqueo: datetime(),
+    fecha_bloqueo: toString(datetime.truncate('second', datetime({timezone:'America/Bogota'}))),
     detalle: []
 })
 
@@ -328,7 +326,7 @@ MERGE (integrante)<-[:Bloqueo]-(b)
 MERGE (integrante)<-[:NivelToEmpresa]-(nivel)
 MERGE (integrante)<-[:EquipoToMiembro]-(equipo)
 
-RETURN *
+RETURN integrante.id AS integrante_id
 """
 
 def invitar_integrante_unir(data, tx):
