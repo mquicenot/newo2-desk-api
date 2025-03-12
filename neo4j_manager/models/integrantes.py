@@ -59,8 +59,13 @@ WITH {
     privilegios: {
         oficina: privilegio.oficina,
         acceso_ilimitado: privilegio.acceso_ilimitado,
+        acceso_ilimitado_cupo: COALESCE(privilegio.acceso_ilimitado_cupo, 0),
         acceso_ilimitado_fecha_inicio: COALESCE(toString(privilegio.accesoi_fecha_inicio), ""),
         acceso_ilimitado_fecha_fin: COALESCE(toString(privilegio.accesoi_fecha_fin), ""),
+        membresia: privilegio.membresia,
+        membresia_cupo: COALESCE(privilegio.membresia_cupo, 0),
+        membresia_fecha_inicio: COALESCE(toString(privilegio.membresia_fecha_inicio), ""),
+        membresia_fecha_fin: COALESCE(toString(privilegio.membresia_fecha_fin), ""),
         pago_reservas: privilegio.pago_reservas,
         pago_invitados: privilegio.pago_invitados,
         tope_ingreso_miembros: privilegio.ingreso_sede,
@@ -115,15 +120,15 @@ def obtener_integrantes(data, tx):
 EDITAR_INTEGRANTES = """
 UNWIND $data AS record
 MATCH (user:jhi_user {user_id: record.user_id})--(miembro:Miembros)--(admin:AdministradorEmpresa)
-      --(empresa:Empresa {id: record.empresa_id})--(equipo:EquipoEmpresa)--(privilegio:PrivilegiosEmpresarial),
-      (equipo)-[l1]-(integrante:Miembros),
-      (bloqueo:BloqueoEmpresarial)--(integrante)--(nivel:NivelEmpresarial),
-      (integrante {id: record.integrante_id})--(compras:RegistroCompra)--(empresa), 
-      (equipo_to:EquipoEmpresa {id: record.equipo_id})
+MATCH (admin)--(empresa:Empresa {id: record.empresa_id})--(equipo:EquipoEmpresa)--(privilegio:PrivilegiosEmpresarial)
+MATCH (equipo)-[l1]-(integrante:Miembros {id: record.integrante_id})
+MATCH (bloqueo:BloqueoEmpresarial)--(integrante)--(nivel:NivelEmpresarial)
+MATCH (equipo_to:EquipoEmpresa {id: record.equipo_id})
 WITH DISTINCT integrante, equipo, equipo_to, bloqueo, record, l1,
   CASE 
     WHEN bloqueo.bloqueo = true 
       AND record.bloqueo = false 
+      AND bloqueo.bloqueo_fecha_fin IS NOT NULL 
       AND datetime(bloqueo.bloqueo_fecha_fin) <= datetime({timezone:'America/Bogota'})
       THEN false 
     WHEN bloqueo.bloqueo = false 
@@ -134,25 +139,31 @@ WITH DISTINCT integrante, equipo, equipo_to, bloqueo, record, l1,
   CASE 
     WHEN bloqueo.bloqueo = false 
       AND record.bloqueo = true
-      THEN toString(datetime.truncate('second', datetime({timezone:'America/Bogota'}) + duration({days:30})))
+      THEN toString(datetime.truncate('second', datetime({timezone:'America/Bogota'}) + duration({days:30})))
     WHEN bloqueo.bloqueo = true 
       AND record.bloqueo = false 
+      AND bloqueo.bloqueo_fecha_fin IS NOT NULL 
       AND datetime(bloqueo.bloqueo_fecha_fin) <= datetime({timezone:'America/Bogota'})
       THEN null
-    ELSE toString(datetime.truncate('second', datetime({datetime:datetime(bloqueo.bloqueo_fecha_fin), timezone:'America/Bogota'})))
+    WHEN bloqueo.bloqueo_fecha_fin IS NOT NULL 
+      THEN toString(datetime.truncate('second', datetime({datetime: datetime(bloqueo.bloqueo_fecha_fin), timezone:'America/Bogota'})))
+    ELSE null
   END AS nuevo_bloqueo_fecha_fin,
   CASE 
     WHEN bloqueo.bloqueo = false 
       AND record.bloqueo = true 
-      THEN toString(datetime.truncate('second', datetime({timezone:'America/Bogota'})))
+      THEN toString(datetime.truncate('second', datetime({timezone:'America/Bogota'})))
     WHEN bloqueo.bloqueo = true 
       AND record.bloqueo = false 
+      AND bloqueo.bloqueo_fecha_fin IS NOT NULL 
       AND datetime(bloqueo.bloqueo_fecha_fin) <= datetime({timezone:'America/Bogota'})
       THEN null
-      ELSE toString(datetime.truncate('second', datetime({datetime:datetime(bloqueo.bloqueo_fecha_inicio), timezone:'America/Bogota'})))
+    WHEN bloqueo.bloqueo_fecha_inicio IS NOT NULL 
+      THEN toString(datetime.truncate('second', datetime({datetime: datetime(bloqueo.bloqueo_fecha_inicio), timezone:'America/Bogota'})))
+    ELSE null
   END AS nuevo_bloqueo_fecha_inicio
 
-// Eliminar la relación si existe
+//Eliminar la relación si existe
 FOREACH (_ IN CASE WHEN l1 IS NOT NULL THEN [1] ELSE [] END | DELETE l1)
 
 MERGE (integrante)<-[:EquipoToMiembro]-(equipo_to)

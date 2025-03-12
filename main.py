@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import auth0, init_components, equipos, integrantes, compras
+from routers import auth0, init_components, equipos, integrantes, compras, membresias
 from fastapi.responses import RedirectResponse
 
 app = FastAPI(title='newo2 b2b api')
@@ -30,6 +30,8 @@ app.include_router(init_components.query, prefix='/init_components')
 app.include_router(equipos.query, prefix='/equipos')
 app.include_router(integrantes.query, prefix='/integrantes')
 app.include_router(compras.query, prefix='/compras')
+app.include_router(membresias.query, prefix='/membresias')
+
 
 
 @app.get('/', include_in_schema=False)

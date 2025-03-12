@@ -14,8 +14,9 @@ WITH usuario, miembro, miembro_solo, empresa,
   descuento_sedes:n.descuento_sede, 
   descuento_invitados:n.descuento_invitado,
   descuento_reservas:n.descuento_reserva}) AS niveles_empresariales
+MATCH (sede:SEDE {Activa:TRUE})
 WITH usuario, miembro, miembro_solo, 
-     COLLECT({
+     COLLECT( DISTINCT {
          id: empresa.id,
          razon_social: empresa.razon_social,
          pago_empresarial: empresa.pago_empresarial,
@@ -23,7 +24,8 @@ WITH usuario, miembro, miembro_solo,
          integrantes_bloqueados: size([i IN integrantes WHERE i.bloqueo = true]),
          integrantes_activos: size([i IN integrantes WHERE i.bloqueo = false]),
          integrantes_niveles: niveles_empresariales
-     }) AS empresas
+     }) AS empresas,
+     COLLECT ({id:sede.id, nombre: sede.nombre_sede}) AS sedes
 RETURN {
     login: usuario.login,
     auth_id: usuario.user_id
@@ -44,7 +46,7 @@ RETURN {
     email: miembro_solo.login,
     activo: miembro_solo.activo
 } AS perfil_solo,
-empresas
+empresas, sedes
 """
 
 def init_components(data, tx):
