@@ -253,7 +253,7 @@ OPTIONAL MATCH (s_reserva:SEDE)--(er:EspacioReserva)--(reserva:Reservas)--(compr
 OPTIONAL MATCH (compra)--(s_otro:SEDE)
 WITH DISTINCT 
     compra, 
-    COLLECT({
+    COLLECT( DISTINCT{
         id: integrante.id, 
         identificacion: integrante.identificacion, 
         nombre: trim(integrante.nombre), 
